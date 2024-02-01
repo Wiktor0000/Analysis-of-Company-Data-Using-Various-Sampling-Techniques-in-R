@@ -1,0 +1,154 @@
+##Loading packages
+```{r}
+library(readxl)
+library(writexl)
+library(dplyr)
+library(janitor)
+library(stringr)
+library(sampling)
+library(survey)
+library(readr)
+```
+
+##Removing all objects
+```{r}
+remove(list = ls())
+```
+
+##Function converting revenue to numerical values
+```{r}
+convert_revenue <- function(revenue_string) {
+    # Extract the numeric part
+    number <- as.numeric(gsub("[^0-9.]", "", revenue_string))
+    
+    # Check if the string contains "Billion" or "Millions" and multiply accordingly
+    if (grepl("Billion", revenue_string)) {
+        return(number * 1e9)
+    } else if (grepl("Million", revenue_string)) {
+        return(number * 1e6)
+    } else {
+        return(number)
+    }
+}
+```
+
+##Loading data
+```{r}
+data <- read.csv("https://gist.githubusercontent.com/Wiktor0000/eff84fb1ae28da9c910b1450fb4123f3/raw/8bbb75184d13fb31034b0ebdb576e4eb837af9e6/INC%25205000%2520Companies%25202019.csv") %>% 
+  clean_names() %>%
+  select(name, state, revenue, growth, industry, workers, founded,city) %>% 
+  mutate(revenue = sapply(revenue, convert_revenue))
+```
+
+##Cluster sampling
+```{r}
+# Setting the seed for result reproducibility
+set.seed(1234)
+
+# Only unique states
+unique_states <- unique(data$state)
+
+# Selecting all observations from the sampled states
+sample_size <- ceiling(length(unique_states) * 0.1)
+sampled_states <- sample(unique_states, sample_size)
+
+# Selecting all observations from the sampled states
+cluster_sample <- data[data$state %in% sampled_states, ]
+
+# Displaying the results
+print(cluster_sample)
+```
+
+```{r}
+# Estimation
+mean_estimate <- mean(cluster_sample$revenue)
+
+# Variance of estimation
+variance_estimate <- var(cluster_sample$revenue)
+
+# Coefficient of variation of estimation
+coefficient_of_variation <- sd(cluster_sample$revenue) / mean_estimate * 100
+
+# Displaying the results
+print(paste("Estimation:", mean_estimate))
+print(paste("Variance of estimation:", variance_estimate))
+print(paste("Coefficient of variation of estimation:", coefficient_of_variation))
+```
+
+##Stratified sampling
+```{r}
+set.seed(1234)
+
+# Selection of unique categories (e.g., industries) for stratification
+categories <- unique(data$industry)
+
+# Initialization of an empty dataset for sampled observations from each category
+sample_data <- data.frame()
+
+# Conducting stratified sampling
+for (category in categories) {
+  # Selection of data for a given category
+  category_data <- data[data$industry == category, ]
+  
+  # Sampling from the given category
+  sample_size <- round(nrow(category_data) * 0.1)  # Let's assume we are sampling 10% of the population
+  sampled_indices <- sample(1:nrow(category_data), size = sample_size, replace = FALSE)
+  sampled_data <- category_data[sampled_indices, ]
+  
+  # Adding the sampled data to the resulting dataset
+  sample_data <- rbind(sample_data, sampled_data)
+}
+
+print("The sampled data:")
+print(sample_data)
+```
+
+```{r}
+# Estimating the global value (e.g., mean revenue) for the sampled data
+global_estimate <- mean(sample_data$revenue)
+
+# Variance of estimation
+variance_estimate <- var(sample_data$revenue)
+
+# Coefficient of variation of estimation
+coefficient_of_variation <- sqrt(variance_estimate) / global_estimate
+
+print(paste("Estimating the global value:", global_estimate))
+print(paste("Variance of estimation:", variance_estimate))
+print(paste("Coefficient of variation of estimation:", coefficient_of_variation))
+```
+
+##Two-stage sampling
+```{r}
+set.seed(1234)
+
+# First stage of sampling - selection of states
+states <- unique(data$state)
+sample_states <- sample(states, size = 3, replace = FALSE)
+
+# Second stage of sampling - selection of companies from the chosen states
+sample_data <- data[data$state %in% sample_states, ]
+
+# Displaying the sampled states
+print("The sampled states:")
+print(sample_states)
+
+# Displaying the sampled companies from the selected states
+print("The sampled companies:")
+print(sample_data)
+```
+
+```{r}
+# Estimation
+mean_estimate <- mean(sample_data$revenue)
+
+# Variance of estimation
+variance_estimate <- var(sample_data$revenue)
+
+# Coefficient of variation of estimation
+coefficient_of_variation <- sd(sample_data$revenue) / mean_estimate * 100
+
+print(paste("Estimation:", mean_estimate))
+print(paste("Variance of estimation:", variance_estimate))
+print(paste("Coefficient of variation of estimation:", coefficient_of_variation))
+```
