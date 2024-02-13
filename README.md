@@ -1,4 +1,4 @@
-Data Analysis Project Using R
+-Data Analysis Project Using R-
 
 This project aims to utilize the R programming language for data analysis on a dataset containing information about companies from the "INC 5000 Companies" list from the year 2019. Various data sampling techniques are employed in the project, including cluster sampling, stratified sampling, and two-stage sampling, to obtain representative data samples and estimate different parameters, such as the average revenue of companies in various industries or the average revenue in different states.
 
